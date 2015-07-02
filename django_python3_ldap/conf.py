@@ -98,5 +98,16 @@ class LazySettings():
         default = "",
     )
 
+    # An user to use when run alternative search.
+    LDAP_SEARCH_DN = LazySetting(
+        name = "LDAP_SEARCH_DN",
+        default = "",
+    )
+
+    # A password to use when run alternative search.
+    LDAP_SEARCH_PASSWORD = LazySetting(
+        name = "LDAP_SEARCH_PASSWORD",
+        default = "",
+    )
 
 settings = LazySettings(settings)

@@ -101,6 +101,7 @@ class Connection(object):
                 in user_identifier.items()
             ),
         )
+
         if self._connection.search(
             search_base = settings.LDAP_AUTH_SEARCH_BASE,
             search_filter = search_filter,
@@ -109,6 +110,10 @@ class Connection(object):
             size_limit = 1,
         ):
             return self._get_or_create_user(self._connection.response[0])
+
+
+
+
         return None
 
 
@@ -152,10 +157,24 @@ def connection(*args, **kwargs):
     else:
         auto_bind = ldap3.AUTO_BIND_NONE
     try:
+        c = ldap3.Connection(ldap3.Server(settings.LDAP_AUTH_URL), user=username_dn, password=password, auto_bind=auto_bind)
         with ldap3.Connection(ldap3.Server(settings.LDAP_AUTH_URL), user=username_dn, password=password, auto_bind=auto_bind) as c:
             yield Connection(c)
     except ldap3.LDAPBindError:
-        yield None
+        # Alternative search LDAP_AUTH_SEARCH_BASE
+        alt_con = ldap3.Connection(ldap3.Server(settings.LDAP_AUTH_URL), user=settings.LDAP_SEARCH_DN,
+                                   password=settings.LDAP_SEARCH_PASSWORD, auto_bind=auto_bind)
+        if alt_con.search(settings.LDAP_AUTH_SEARCH_BASE,'(&(objectClass=person)(uid=%s))' % (kwargs['username'],), ldap3.SUBTREE):
+            try:
+                if len(alt_con.response) == 1:
+                    username_dn = alt_con.response[0]['dn']
+                    c2 =  ldap3.Connection(ldap3.Server(settings.LDAP_AUTH_URL), user=username_dn, password=password, auto_bind=auto_bind)
+                    yield Connection(c2)
+            except:
+                yield
+        else:
+            yield
+
 
 
 def authenticate(*args, **kwargs):
